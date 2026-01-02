@@ -1,4 +1,4 @@
-from openai import OpenAI
+from openai import OpenAI, RateLimitError
 from app.core.config import OPENAI_API_KEY, OPENAI_MODEL
 from fastapi import HTTPException
 
@@ -40,14 +40,28 @@ Return STRICT JSON ONLY in this format:
 }}
 """
 
+    try:
+        response = client.chat.completions.create(
+            model=OPENAI_MODEL,
+            messages=[
+                {"role": "system", "content": "You are an intelligent content creator."},
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0.7,
+        )
 
-    response = client.chat.completions.create(
-        model=OPENAI_MODEL,
-        messages=[
-            {"role": "system", "content": "You are an intelligent content creator."},
-            {"role": "user", "content": prompt},
-        ],
-        temperature=0.7,
-    )
+        return response.choices[0].message.parsed
 
-    return response.choices[0].message.parsed
+    except RateLimitError:
+        # 🔑 NO CREDITS / QUOTA EXCEEDED
+        raise HTTPException(
+            status_code=503,
+            detail="AI generation is not available at this time"
+        )
+
+    except Exception:
+        # 🔒 Any other OpenAI / network failure
+        raise HTTPException(
+            status_code=500,
+            detail="AI generation failed unexpectedly"
+        )

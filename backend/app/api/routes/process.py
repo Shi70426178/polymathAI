@@ -2,7 +2,9 @@ from fastapi import APIRouter, HTTPException
 from pathlib import Path
 from app.services.content.generator import ContentGenerator
 from pydantic import BaseModel
-
+from app.core.config import STATUS_DIR
+from app.utils.cleanup import cleanup_video_files
+from app.core.config import OPENAI_API_KEY
 from app.core.config import UPLOAD_DIR, AUDIO_DIR, TRANSCRIPT_DIR
 from app.services.video.extractor import extract_audio
 from app.services.speech.transcriber import Transcriber
@@ -55,28 +57,81 @@ def transcribe_audio(video_id: str):
     }
 @router.post("/generate-content/{video_id}")
 def generate_content(video_id: str, body: GenerateContentRequest):
-    transcript_path = TRANSCRIPT_DIR / f"{video_id}.txt"
 
-    if not transcript_path.exists():
-        raise HTTPException(status_code=404, detail="Transcript not found")
+    # 🔒 OpenAI availability guard (ADD HERE)
+    if not OPENAI_API_KEY:
+        raise HTTPException(
+            status_code=503,
+            detail="AI generation temporarily unavailable. Please try again later."
+        )
 
-    text = transcript_path.read_text(encoding="utf-8")
+    lock_file = STATUS_DIR / f"{video_id}.lock"
+    done_file = STATUS_DIR / f"{video_id}.done"
 
-    generator = ContentGenerator()
-    content = generator.generate(
-        transcript=text,
-        category=body.category
-    )
+    # 🚫 If already completed, reuse result
+    if done_file.exists():
+        transcript_path = TRANSCRIPT_DIR / f"{video_id}.txt"
+        text = transcript_path.read_text(encoding="utf-8")
 
-    return {
-        "message": "Content generated successfully",
-        "content": content
-    }
+        generator = ContentGenerator()
+        content = generator.generate(
+            transcript=text,
+            category=body.category
+        )
 
+        return {
+            "message": "Already processed (cached)",
+            "content": content
+        }
+
+    # 🚫 If processing is ongoing
+    if lock_file.exists():
+        raise HTTPException(
+            status_code=409,
+            detail="Processing already in progress"
+        )
+
+    # 🔒 Create lock
+    lock_file.touch()
+
+    try:
+        transcript_path = TRANSCRIPT_DIR / f"{video_id}.txt"
+        if not transcript_path.exists():
+            raise HTTPException(status_code=404, detail="Transcript not found")
+
+        text = transcript_path.read_text(encoding="utf-8")
+
+        generator = ContentGenerator()
+        content = generator.generate(
+            transcript=text,
+            category=body.category
+        )
+
+        # ✅ Mark done
+        done_file.touch()
+
+        # 🧹 Cleanup heavy files (perfect place)
+        cleanup_video_files(video_id)
+
+        return {
+            "message": "Content generated successfully",
+            "content": content
+        }
+
+    finally:
+        # 🔓 Always remove lock
+        if lock_file.exists():
+            lock_file.unlink()
 
 
 @router.post("/full/{video_id}")
 def full_pipeline(video_id: str):
+    lock_file = STATUS_DIR / f"{video_id}.lock"
+    if lock_file.exists():
+        raise HTTPException(409, "Processing already in progress")
+
+    lock_file.touch()
+
     # 1. Find video
     video_matches = list(UPLOAD_DIR.glob(f"{video_id}.*"))
     if not video_matches:
@@ -101,6 +156,7 @@ def full_pipeline(video_id: str):
     # 4. Generate content (NO language logic)
     generator = OpenAIContentGenerator()
     content = generator.generate(text)
+    lock_file.unlink(missing_ok=True)
 
     return {
         "message": "Full pipeline completed",

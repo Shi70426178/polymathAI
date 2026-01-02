@@ -1,26 +1,27 @@
 from faster_whisper import WhisperModel
-from pathlib import Path
 
 
 class Transcriber:
     def __init__(self):
-        # 🔥 BEST BALANCE FOR HINDI ON CPU
+        # Load model once (IMPORTANT for performance)
         self.model = WhisperModel(
-            "medium",          # NOT small
+            "medium",
             device="cpu",
-            compute_type="int8"
+            compute_type="int8"  # very important for CPU
         )
 
-    def transcribe(self, audio_path: Path) -> str:
+    def transcribe(self, audio_path: str) -> str:
         segments, info = self.model.transcribe(
-            str(audio_path),
-            language="hi",      # FORCE Hindi
-            beam_size=5,
-            vad_filter=True     # removes silence
+            audio_path,
+            vad_filter=True,
+            beam_size=3
         )
 
-        text = []
-        for segment in segments:
-            text.append(segment.text)
+        text_parts = []
 
-        return " ".join(text).strip()
+        for i, segment in enumerate(segments):
+            if i >= 30:  # ~1 minute of speech cap
+                break
+            text_parts.append(segment.text)
+
+        return " ".join(text_parts)

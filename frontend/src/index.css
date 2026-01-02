@@ -1,71 +1,92 @@
-/* ==============================
-   DESIGN TOKENS (CREATOR FIRST)
-============================== */
+/* ======================================================
+   DESIGN TOKENS
+====================================================== */
 :root {
-  --bg-main: #f8fafc;          /* soft off-white */
-  --bg-card: #ffffff;
-  --bg-soft: #f1f5f9;
+  --bg-main: #f9fafb;
+  --bg-gradient: radial-gradient(
+    1200px 500px at 50% -100px,
+    #ede9fe,
+    transparent
+  );
 
-  --primary: #7c3aed;          /* creator purple */
-  --primary-hover: #6d28d9;
+  --card-bg: #ffffff;
+  --soft-bg: #f3f4f6;
+
+  --primary: #6d28d9;
+  --primary-dark: #5b21b6;
 
   --success: #16a34a;
 
   --text-main: #0f172a;
-  --text-muted: #475569;
-  --border-soft: #e5e7eb;
+  --text-muted: #64748b;
+
+  --border: #e5e7eb;
 }
 
-/* ==============================
-   GLOBAL RESET
-============================== */
+/* ======================================================
+   RESET
+====================================================== */
 *,
 *::before,
 *::after {
   box-sizing: border-box;
 }
 
+html,
 body {
   margin: 0;
+  padding: 0;
+  width: 100%;
+  overflow-x: hidden;
+}
+
+body {
   font-family: Inter, system-ui, -apple-system, Arial, sans-serif;
   background: var(--bg-main);
+  background-image: var(--bg-gradient);
   color: var(--text-main);
   line-height: 1.6;
 }
 
-/* ==============================
+/* ======================================================
    LAYOUT
-============================== */
+====================================================== */
 .container {
-  max-width: 960px;
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 56px 20px;
+  padding: 64px 20px 80px;
 }
 
-/* ==============================
+/* ======================================================
    NAVBAR
-============================== */
+====================================================== */
 .navbar {
   position: sticky;
   top: 0;
-  z-index: 20;
+  z-index: 50;
 
   display: flex;
   justify-content: space-between;
   align-items: center;
 
-  padding: 16px 32px;
-  background: var(--bg-card);
-  border-bottom: 1px solid var(--border-soft);
+  padding: 16px 24px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border);
 }
 
 .logo {
   font-size: 20px;
-  font-weight: 700;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.nav-links {
+  display: flex;
+  gap: 24px;
 }
 
 .nav-links span {
-  margin-left: 24px;
   font-size: 14px;
   color: var(--text-muted);
   cursor: pointer;
@@ -75,83 +96,92 @@ body {
   color: var(--text-main);
 }
 
-/* ==============================
-   HERO
-============================== */
+/* ======================================================
+   HERO SECTION
+====================================================== */
 .hero {
   text-align: center;
-  margin-bottom: 48px;
+  margin-bottom: 56px;
 }
 
 .hero h1 {
-  font-size: 36px;
-  font-weight: 700;
-  line-height: 1.25;
-  margin-bottom: 12px;
+  font-size: 52px;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  margin-bottom: 16px;
 }
 
 .hero p {
-  max-width: 640px;
+  max-width: 720px;
   margin: 0 auto;
+  font-size: 18px;
   color: var(--text-muted);
-  font-size: 16px;
 }
 
-/* ==============================
-   CARD BASE
-============================== */
+/* ======================================================
+   MAIN ACTION CARD
+====================================================== */
 .card {
-  background: var(--bg-card);
-  border-radius: 14px;
-  padding: 32px;
-  margin: 32px auto;
-  border: 1px solid var(--border-soft);
-  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+  background: var(--card-bg);
+  border-radius: 20px;
+  padding: 40px;
+  max-width: 760px;
+  margin: 0 auto;
+
+  border: 1px solid var(--border);
+  box-shadow:
+    0 30px 60px rgba(15, 23, 42, 0.12),
+    0 8px 16px rgba(15, 23, 42, 0.05);
 }
 
-/* ==============================
+/* ======================================================
    UPLOAD CARD
-============================== */
+====================================================== */
 .upload-card h2 {
+  font-size: 22px;
   margin: 0 0 6px;
-  font-size: 20px;
 }
 
 .upload-card p {
-  margin: 0 0 20px;
-  color: var(--text-muted);
+  margin: 0 0 24px;
   font-size: 14px;
+  color: var(--text-muted);
 }
 
 .upload-box {
-  background: var(--bg-soft);
-  border: 2px dashed var(--border-soft);
-  border-radius: 12px;
-  padding: 32px 20px;
+  background: linear-gradient(
+    180deg,
+    #f5f3ff,
+    #ede9fe
+  );
+  border: 2px dashed var(--primary);
+  border-radius: 16px;
+  padding: 20px 20px;
   text-align: center;
   cursor: pointer;
-  transition: border-color 0.2s ease;
+  transition: all 0.2s ease;
 }
 
 .upload-box:hover {
-  border-color: var(--primary);
+  transform: translateY(-2px);
+  background: #ede9fe;
 }
 
 .file-name {
-  font-weight: 500;
+  font-weight: 600;
   color: var(--primary);
   word-break: break-word;
 }
 
-/* ==============================
-   FORM ROW
-============================== */
+/* ======================================================
+   FORM CONTROLS
+====================================================== */
 .row {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-top: 20px;
-  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 24px;
 }
 
 label {
@@ -160,44 +190,46 @@ label {
 }
 
 select {
-  padding: 8px 12px;
-  border-radius: 8px;
-  border: 1px solid var(--border-soft);
-  background: var(--bg-card);
-  color: var(--text-main);
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--card-bg);
   font-size: 14px;
-  outline: none;
 }
 
-select:hover {
-  border-color: var(--primary);
-}
-
-/* ==============================
+/* ======================================================
    BUTTONS
-============================== */
+====================================================== */
 button {
   font-family: inherit;
 }
 
 .primary-btn {
   width: 100%;
-  margin-top: 24px;
-  padding: 14px;
+  margin-top: 28px;
+  padding: 18px;
 
-  background: var(--primary);
-  color: white;
+  background: linear-gradient(
+    135deg,
+    var(--primary),
+    var(--primary-dark)
+  );
+  color: #fff;
+
   border: none;
-  border-radius: 10px;
+  border-radius: 14px;
 
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 17px;
+  font-weight: 800;
   cursor: pointer;
-  transition: background 0.15s ease;
+
+  box-shadow: 0 14px 30px rgba(109, 40, 217, 0.45);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 .primary-btn:hover {
-  background: var(--primary-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 20px 40px rgba(109, 40, 217, 0.6);
 }
 
 .primary-btn:disabled {
@@ -205,26 +237,22 @@ button {
   cursor: not-allowed;
 }
 
-.secondary-btn {
-  padding: 8px 14px;
-  background: var(--bg-soft);
-  border: 1px solid var(--border-soft);
-  border-radius: 8px;
-  cursor: pointer;
+/* ======================================================
+   RESULT CARD
+====================================================== */
+.result-card {
+  margin-top: 48px;
 }
 
-/* ==============================
-   RESULT CARD
-============================== */
 .result-card h3 {
-  color: var(--success);
   font-size: 14px;
-  margin-bottom: 12px;
+  color: var(--success);
+  margin-bottom: 10px;
 }
 
 .result-card h4 {
-  margin: 0 0 6px;
-  font-size: 18px;
+  font-size: 20px;
+  margin-bottom: 6px;
 }
 
 .result-card p {
@@ -232,39 +260,63 @@ button {
 }
 
 .hashtags {
-  margin: 16px 0;
+  margin: 20px 0;
 }
 
 .tag {
   display: inline-block;
-  margin: 4px;
-  padding: 6px 12px;
+  margin: 6px 6px 0 0;
+  padding: 8px 14px;
   font-size: 13px;
 
-  background: var(--bg-soft);
+  background: var(--soft-bg);
   border-radius: 999px;
-  border: 1px solid var(--border-soft);
+  border: 1px solid var(--border);
   color: var(--text-muted);
 }
 
-/* ==============================
-   TEXT HELPERS
-============================== */
-.muted {
-  color: var(--text-muted);
-}
-
-.tiny {
-  font-size: 12px;
-  color: var(--text-muted);
-}
-
-/* ==============================
+/* ======================================================
    FOOTER
-============================== */
+====================================================== */
 .footer {
+  margin-top: 80px;
   text-align: center;
-  padding: 36px 20px;
   font-size: 13px;
   color: var(--text-muted);
+}
+
+/* ======================================================
+   RESPONSIVE
+====================================================== */
+@media (max-width: 768px) {
+  .hero h1 {
+    font-size: 34px;
+  }
+
+  .hero p {
+    font-size: 15px;
+  }
+
+  .card {
+    padding: 28px;
+  }
+
+  .row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero h1 {
+    font-size: 28px;
+  }
+
+  .navbar {
+    padding: 12px 16px;
+  }
+
+  .nav-links {
+    gap: 16px;
+  }
 }

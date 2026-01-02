@@ -9,11 +9,12 @@ export default function ResultCard({ content }) {
       <p>{content.description}</p>
 
       <div className="hashtags">
-        {content.hashtags.map((tag) => (
-          <span key={tag} className="tag">
-            {tag}
-          </span>
-        ))}
+        {Array.isArray(content.hashtags) &&
+          content.hashtags.map((tag) => (
+            <span key={tag} className="tag">
+              {tag}
+            </span>
+          ))}
       </div>
 
       <div className="row">
@@ -21,7 +22,7 @@ export default function ResultCard({ content }) {
           className="secondary-btn"
           onClick={() =>
             navigator.clipboard.writeText(
-              `${content.title}\n\n${content.description}\n\n${content.hashtags.join(" ")}`
+              `${content.title}\n\n${content.description}\n\n${content.hashtags?.join(" ")}`
             )
           }
         >
@@ -31,7 +32,7 @@ export default function ResultCard({ content }) {
         <button
           className="secondary-btn"
           onClick={() =>
-            navigator.clipboard.writeText(content.hashtags.join(" "))
+            navigator.clipboard.writeText(content.hashtags?.join(" "))
           }
         >
           Copy Hashtags

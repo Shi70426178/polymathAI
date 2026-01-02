@@ -11,7 +11,7 @@ const CATEGORIES = [
   "tech",
 ];
 
-export default function UploadCard({ onGenerate }) {
+export default function UploadCard({ onGenerate, loading }) {
   const [file, setFile] = useState(null);
   const [category, setCategory] = useState("vlog");
 
@@ -54,11 +54,8 @@ export default function UploadCard({ onGenerate }) {
 
       <button
   className="primary-btn"
-  disabled={!file}
-  onClick={() => {
-    console.log("Generate clicked", file, category);
-    onGenerate(file, category);
-  }}
+  disabled={!file || loading}
+  onClick={() => onGenerate(file, category)}
 >
   🚀 Generate with AI
 </button>

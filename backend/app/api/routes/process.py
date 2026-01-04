@@ -219,7 +219,7 @@ def generate_content(video_id: str, body: GenerateContentRequest):
 
 
 
-@router.post("/process/start/{video_id}")
+@router.post("/start/{video_id}")
 def start_processing(video_id: str, background_tasks: BackgroundTasks):
     set_status(video_id, "processing")
 
@@ -229,12 +229,12 @@ def start_processing(video_id: str, background_tasks: BackgroundTasks):
 
 
 
-@router.get("/process/status/{video_id}")
+@router.get("/status/{video_id}")
 def process_status(video_id: str):
     return get_status(video_id)
 
 
-@router.get("/process/result/{video_id}")
+@router.get("/result/{video_id}")
 def get_result(video_id: str):
     result_path = (TRANSCRIPT_DIR.parent / "results") / f"{video_id}.json"
 

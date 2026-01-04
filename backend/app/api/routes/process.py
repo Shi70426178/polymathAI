@@ -1,7 +1,8 @@
 from fastapi import APIRouter, HTTPException
 from pathlib import Path
-from pydantic import BaseModel
+# from pydantic import BaseModel
 from app.utils.status import set_status, get_status
+from app.core.config import RESULTS_DIR
 
 import json
 import re
@@ -81,9 +82,12 @@ def run_pipeline(video_id: str):
         content = safe_parse_content(raw)
 
         # 5️⃣ save result
-        result_path = (TRANSCRIPT_DIR.parent / "results") / f"{video_id}.json"
-        result_path.parent.mkdir(exist_ok=True)
-        result_path.write_text(json.dumps(content))
+        result_path = RESULTS_DIR / f"{video_id}.json"
+        result_path.write_text(
+            json.dumps(content, ensure_ascii=False, indent=2),
+            encoding="utf-8"
+        )
+
 
         # 6️⃣ cleanup
         cleanup_video_files(video_id)
@@ -98,8 +102,8 @@ def run_pipeline(video_id: str):
 # Schemas
 # =========================
 
-class GenerateContentRequest(BaseModel):
-    category: str
+# class GenerateContentRequest(BaseModel):
+#     category: str
 
 
 # =========================
@@ -146,76 +150,76 @@ def transcribe_audio(video_id: str):
     }
 
 
-@router.post("/generate-content/{video_id}")
-def generate_content(video_id: str, body: GenerateContentRequest):
+# @router.post("/generate-content/{video_id}")
+# def generate_content(video_id: str, body: GenerateContentRequest):
 
-    # 🔒 OpenAI availability guard
-    if not OPENAI_API_KEY:
-        raise HTTPException(
-            status_code=503,
-            detail="AI generation temporarily unavailable. Please try again later.",
-        )
+#     # 🔒 OpenAI availability guard
+#     if not OPENAI_API_KEY:
+#         raise HTTPException(
+#             status_code=503,
+#             detail="AI generation temporarily unavailable. Please try again later.",
+#         )
 
-    lock_file = STATUS_DIR / f"{video_id}.lock"
-    done_file = STATUS_DIR / f"{video_id}.done"
+#     lock_file = STATUS_DIR / f"{video_id}.lock"
+#     done_file = STATUS_DIR / f"{video_id}.done"
 
-    # ♻️ Cached result
-    if done_file.exists():
-        transcript_path = TRANSCRIPT_DIR / f"{video_id}.txt"
-        text = transcript_path.read_text(encoding="utf-8")
+#     # ♻️ Cached result
+#     if done_file.exists():
+#         transcript_path = TRANSCRIPT_DIR / f"{video_id}.txt"
+#         text = transcript_path.read_text(encoding="utf-8")
 
-        generator = ContentGenerator()
-        raw = generator.generate(transcript=text, category=body.category)
+#         generator = ContentGenerator()
+#         raw = generator.generate(transcript=text, category=body.category)
 
-        print("🧠 RAW AI OUTPUT (cached):")
-        print(raw)
+#         print("🧠 RAW AI OUTPUT (cached):")
+#         print(raw)
 
-        return {
-            "message": "Already processed (cached)",
-            "content": safe_parse_content(raw),
-        }
+#         return {
+#             "message": "Already processed (cached)",
+#             "content": safe_parse_content(raw),
+#         }
 
-    # 🚫 Prevent double processing
-    if lock_file.exists():
-        raise HTTPException(status_code=409, detail="Processing already in progress")
+#     # 🚫 Prevent double processing
+#     if lock_file.exists():
+#         raise HTTPException(status_code=409, detail="Processing already in progress")
 
-    lock_file.touch()
+#     lock_file.touch()
 
-    try:
-        transcript_path = TRANSCRIPT_DIR / f"{video_id}.txt"
-        if not transcript_path.exists():
-            raise HTTPException(status_code=404, detail="Transcript not found")
+#     try:
+#         transcript_path = TRANSCRIPT_DIR / f"{video_id}.txt"
+#         if not transcript_path.exists():
+#             raise HTTPException(status_code=404, detail="Transcript not found")
 
-        text = transcript_path.read_text(encoding="utf-8")
+#         text = transcript_path.read_text(encoding="utf-8")
 
-        generator = ContentGenerator()
-        raw = generator.generate(transcript=text, category=body.category)
+#         generator = ContentGenerator()
+#         raw = generator.generate(transcript=text, category=body.category)
 
-        print("🧠 RAW AI OUTPUT:")
-        print(raw)
+#         print("🧠 RAW AI OUTPUT:")
+#         print(raw)
 
-        content = safe_parse_content(raw)
+#         content = safe_parse_content(raw)
 
-        done_file.touch()
+#         done_file.touch()
 
-        # 🧹 cleanup heavy files
-        cleanup_video_files(video_id)
+#         # 🧹 cleanup heavy files
+#         cleanup_video_files(video_id)
 
-        return {
-            "message": "Content generated successfully",
-            "content": content,
-        }
+#         return {
+#             "message": "Content generated successfully",
+#             "content": content,
+#         }
 
-    except HTTPException:
-        raise
+#     except HTTPException:
+#         raise
 
-    except Exception as e:
-        print("❌ Content generation error:", e)
-        raise HTTPException(status_code=500, detail="Content generation failed")
+#     except Exception as e:
+#         print("❌ Content generation error:", e)
+#         raise HTTPException(status_code=500, detail="Content generation failed")
 
-    finally:
-        if lock_file.exists():
-            lock_file.unlink()
+#     finally:
+#         if lock_file.exists():
+#             lock_file.unlink()
 
 
 
@@ -241,7 +245,8 @@ def get_result(video_id: str):
     if not result_path.exists():
         raise HTTPException(404, "Result not ready")
 
-    return json.loads(result_path.read_text())
+    return json.loads(result_path.read_text(encoding="utf-8"))
+
 
 
 @router.post("/full/{video_id}")

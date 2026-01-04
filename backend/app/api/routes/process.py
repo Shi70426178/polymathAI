@@ -1,24 +1,24 @@
 from fastapi import APIRouter, HTTPException
 from pathlib import Path
-# from pydantic import BaseModel
-from app.utils.status import set_status, get_status
-from app.core.config import RESULTS_DIR
-
 import json
 import re
-from fastapi import BackgroundTasks
-from app.utils.status import set_status
+import threading
+from app.core.config import STATUS_DIR
+
+from app.utils.status import set_status, get_status
 from app.services.content.generator import ContentGenerator
 from app.services.video.extractor import extract_audio
 from app.services.speech.transcriber import Transcriber
 from app.utils.cleanup import cleanup_video_files
 from app.core.config import (
-    STATUS_DIR,
     OPENAI_API_KEY,
     UPLOAD_DIR,
     AUDIO_DIR,
     TRANSCRIPT_DIR,
+    RESULT_DIR,
+    STATUS_DIR, 
 )
+
 
 router = APIRouter(prefix="/process", tags=["Processing"])
 
@@ -52,28 +52,39 @@ def safe_parse_content(raw):
 
 
 
-
-
 def run_pipeline(video_id: str):
+    lock_file = STATUS_DIR / f"{video_id}.lock"
+
     try:
-        # 1️⃣ find video
+        # ✅ If result already exists, don’t reprocess
+        result_path = RESULT_DIR / f"{video_id}.json"
+        if result_path.exists():
+            set_status(video_id, "completed")
+            return
+
+        set_status(video_id, "extracting_audio")
+
         video_matches = list(UPLOAD_DIR.glob(f"{video_id}.*"))
         if not video_matches:
             raise RuntimeError("Video not found")
 
         video_path = video_matches[0]
 
-        # 2️⃣ extract audio
+        # 1️⃣ Extract audio
         audio_path = extract_audio(video_path, AUDIO_DIR)
 
-        # 3️⃣ transcribe (Whisper medium)
+        set_status(video_id, "transcribing")
+
+        # 2️⃣ Transcribe (Whisper API)
         transcriber = Transcriber()
         text = transcriber.transcribe(audio_path)
 
         transcript_path = TRANSCRIPT_DIR / f"{video_id}.txt"
         transcript_path.write_text(text, encoding="utf-8")
 
-        # 4️⃣ generate content
+        set_status(video_id, "generating_content")
+
+        # 3️⃣ Generate content
         if not OPENAI_API_KEY:
             raise RuntimeError("OpenAI API key missing")
 
@@ -81,15 +92,13 @@ def run_pipeline(video_id: str):
         raw = generator.generate(transcript=text, category="general")
         content = safe_parse_content(raw)
 
-        # 5️⃣ save result
-        result_path = RESULTS_DIR / f"{video_id}.json"
+        # 4️⃣ Save result
         result_path.write_text(
             json.dumps(content, ensure_ascii=False, indent=2),
             encoding="utf-8"
         )
 
-
-        # 6️⃣ cleanup
+        # 5️⃣ Cleanup
         cleanup_video_files(video_id)
 
         set_status(video_id, "completed")
@@ -97,6 +106,9 @@ def run_pipeline(video_id: str):
     except Exception as e:
         set_status(video_id, "failed", str(e))
 
+    finally:
+        # ✅ ALWAYS release lock
+        lock_file.unlink(missing_ok=True)
 
 # =========================
 # Schemas
@@ -222,32 +234,37 @@ def transcribe_audio(video_id: str):
 #             lock_file.unlink()
 
 
-
 @router.post("/start/{video_id}")
-def start_processing(video_id: str, background_tasks: BackgroundTasks):
+def start_processing(video_id: str):
+    lock_file = STATUS_DIR / f"{video_id}.lock"
+
+    if lock_file.exists():
+        raise HTTPException(409, "Already processing")
+
+    lock_file.touch()
     set_status(video_id, "processing")
 
-    background_tasks.add_task(run_pipeline, video_id)
+    threading.Thread(
+        target=run_pipeline,
+        args=(video_id,),
+        daemon=True
+    ).start()
 
     return {"status": "started"}
-
 
 
 @router.get("/status/{video_id}")
 def process_status(video_id: str):
     return get_status(video_id)
 
-
 @router.get("/result/{video_id}")
 def get_result(video_id: str):
-    result_path = (TRANSCRIPT_DIR.parent / "results") / f"{video_id}.json"
+    result_path = RESULT_DIR / f"{video_id}.json"
 
     if not result_path.exists():
         raise HTTPException(404, "Result not ready")
 
     return json.loads(result_path.read_text(encoding="utf-8"))
-
-
 
 @router.post("/full/{video_id}")
 def full_pipeline(video_id: str):

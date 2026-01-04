@@ -4,6 +4,9 @@ const API_BASE =
     ? "http://localhost:8000"
     : "http://3.93.39.191:8000");
 
+// ======================
+// Upload
+// ======================
 export async function uploadVideo(file) {
   const formData = new FormData();
   formData.append("file", file);
@@ -13,34 +16,48 @@ export async function uploadVideo(file) {
     body: formData,
   });
 
-  if (!res.ok) throw new Error("Upload failed");
+  if (!res.ok) {
+    throw new Error("Upload failed");
+  }
+
   return res.json();
 }
 
-export async function extractAudio(videoId) {
-  const res = await fetch(`${API_BASE}/process/extract-audio/${videoId}`, {
+// ======================
+// Start background processing
+// ======================
+export async function startProcess(videoId) {
+  const res = await fetch(`${API_BASE}/process/start/${videoId}`, {
     method: "POST",
   });
-  if (!res.ok) throw new Error("Audio extraction failed");
+
+  if (!res.ok) {
+    throw new Error("Failed to start processing");
+  }
 }
 
-export async function transcribe(videoId) {
-  const res = await fetch(`${API_BASE}/process/transcribe/${videoId}`, {
-    method: "POST",
-  });
-  if (!res.ok) throw new Error("Transcription failed");
+// ======================
+// Poll status
+// ======================
+export async function getStatus(videoId) {
+  const res = await fetch(`${API_BASE}/process/status/${videoId}`);
+
+  if (!res.ok) {
+    throw new Error("Failed to get status");
+  }
+
+  return res.json();
 }
 
-export async function generateContent(videoId, category) {
-  const res = await fetch(
-    `${API_BASE}/process/generate-content/${videoId}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ category }),
-    }
-  );
+// ======================
+// Fetch final result
+// ======================
+export async function getResult(videoId) {
+  const res = await fetch(`${API_BASE}/process/result/${videoId}`);
 
-  if (!res.ok) throw new Error("Content generation failed");
+  if (!res.ok) {
+    throw new Error("Result not ready");
+  }
+
   return res.json();
 }

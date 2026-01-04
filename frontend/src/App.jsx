@@ -1,12 +1,12 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Navbar from "./components/Navbar";
 import UploadCard from "./components/UploadCard";
 import ResultCard from "./components/ResultCard";
 import {
   uploadVideo,
-  extractAudio,
-  transcribe,
-  generateContent,
+  startProcess,
+  getStatus,
+  getResult,
 } from "./services/api";
 
 function App() {
@@ -14,36 +14,70 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState("");
 
+  // prevents multiple polling intervals
+  const pollRef = useRef(null);
 
   async function handleGenerate(file, category) {
-  if (loading) return;
+    if (loading) return;
 
-  try {
-    setLoading(true);
-    setContent(null);
+    try {
+      setLoading(true);
+      setContent(null);
+      setStatus("📤 Uploading your video…");
 
-    setStatus("⬆️ Uploading your video…");
-    const uploadData = await uploadVideo(file);
-    const videoId = uploadData.video_id;
+      // 1️⃣ Upload video
+      const uploadData = await uploadVideo(file);
+      const videoId = uploadData.video_id;
 
-    setStatus("🎧 Extracting audio…");
-    await extractAudio(videoId);
+      // 2️⃣ Start background processing
+      setStatus("⚙️ Processing video (this may take a minute)…");
+      await startProcess(videoId);
 
-    setStatus("📝 Transcribing speech…");
-    await transcribe(videoId);
+      // clear any previous poll
+      if (pollRef.current) {
+        clearInterval(pollRef.current);
+      }
 
-    setStatus("🧠 Generating results with AI…");
-    const result = await generateContent(videoId, category);
+      // 3️⃣ Poll status
+      pollRef.current = setInterval(async () => {
+        const data = await getStatus(videoId);
 
-    setContent(result.content);
-    setStatus("");
-  } catch (err) {
-    console.error(err);
-    setStatus("❌ Something went wrong. Please try again.");
-  } finally {
-    setLoading(false);
+        if (data.status === "unknown") {
+          setStatus("⏳ Initializing processing…");
+          return;
+        }
+
+        if (data.status === "completed") {
+          clearInterval(pollRef.current);
+          pollRef.current = null;
+
+          // 4️⃣ Fetch final result
+          const result = await getResult(videoId);
+          setContent(result);
+          setStatus("✅ Done");
+          setLoading(false);
+        }
+
+        if (data.status === "failed") {
+          clearInterval(pollRef.current);
+          pollRef.current = null;
+
+          setStatus("❌ Processing failed");
+          setLoading(false);
+        }
+      }, 3000);
+
+    } catch (err) {
+      console.error(err);
+      setStatus("❌ Something went wrong. Please try again.");
+      setLoading(false);
+
+      if (pollRef.current) {
+        clearInterval(pollRef.current);
+        pollRef.current = null;
+      }
+    }
   }
-}
 
   return (
     <>
@@ -58,17 +92,16 @@ function App() {
           </p>
         </section>
 
-<UploadCard onGenerate={handleGenerate} loading={loading} />
+        <UploadCard onGenerate={handleGenerate} loading={loading} />
 
-{loading && (
-  <div className="processing-box">
-    <div className="spinner" />
-    <p>{status}</p>
-  </div>
-)}
+        {loading && (
+          <div className="processing-box">
+            <div className="spinner" />
+            <p className="muted">{status}</p>
+          </div>
+        )}
 
-<ResultCard content={content} />
-
+        <ResultCard content={content} />
       </main>
 
       <footer className="footer">

@@ -54,11 +54,12 @@ export default function UploadCard({ onGenerate, loading }) {
 
       <button
   className="primary-btn"
-  disabled={!file || loading}
+  disabled={loading || !file}
   onClick={() => onGenerate(file, category)}
 >
-  🚀 Generate with AI
+  {loading ? "Processing…" : "🚀 Generate with AI"}
 </button>
+
 
 
       <p className="tiny muted">Free for short videos</p>

@@ -12,29 +12,38 @@ import {
 function App() {
   const [content, setContent] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState("");
+
 
   async function handleGenerate(file, category) {
-    if (loading) return;
+  if (loading) return;
 
-    try {
-      setLoading(true);
-      setContent(null);
+  try {
+    setLoading(true);
+    setContent(null);
 
-      const uploadData = await uploadVideo(file);
-      const videoId = uploadData.video_id;
+    setStatus("⬆️ Uploading your video…");
+    const uploadData = await uploadVideo(file);
+    const videoId = uploadData.video_id;
 
-      await extractAudio(videoId);
-      await transcribe(videoId);
+    setStatus("🎧 Extracting audio…");
+    await extractAudio(videoId);
 
-      const result = await generateContent(videoId, category);
-      setContent(result.content);
-    } catch (err) {
-      console.error(err);
-      alert("Something went wrong. Check server logs.");
-    } finally {
-      setLoading(false);
-    }
+    setStatus("📝 Transcribing speech…");
+    await transcribe(videoId);
+
+    setStatus("🧠 Generating results with AI…");
+    const result = await generateContent(videoId, category);
+
+    setContent(result.content);
+    setStatus("");
+  } catch (err) {
+    console.error(err);
+    setStatus("❌ Something went wrong. Please try again.");
+  } finally {
+    setLoading(false);
   }
+}
 
   return (
     <>
@@ -49,9 +58,17 @@ function App() {
           </p>
         </section>
 
-        <UploadCard onGenerate={handleGenerate} loading={loading} />
+<UploadCard onGenerate={handleGenerate} loading={loading} />
 
-        <ResultCard content={content} />
+{loading && (
+  <div className="processing-box">
+    <div className="spinner" />
+    <p>{status}</p>
+  </div>
+)}
+
+<ResultCard content={content} />
+
       </main>
 
       <footer className="footer">

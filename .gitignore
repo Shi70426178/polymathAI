@@ -13,6 +13,7 @@ dist/
 # OS
 .DS_Store
 # Runtime generated files
+backend/data
 backend/data/uploads/
 backend/data/audio/
 backend/data/transcripts/

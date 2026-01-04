@@ -1,26 +1,23 @@
 from faster_whisper import WhisperModel
 
+# LOAD ONCE
+_MODEL = WhisperModel(
+    "medium",
+    device="cpu",
+    compute_type="int8"
+)
 
 class Transcriber:
-    def __init__(self):
-        # Load model once (IMPORTANT for performance)
-        self.model = WhisperModel(
-            "medium",
-            device="cpu",
-            compute_type="int8"  # very important for CPU
-        )
-
     def transcribe(self, audio_path: str) -> str:
-        segments, info = self.model.transcribe(
+        segments, info = _MODEL.transcribe(
             audio_path,
             vad_filter=True,
             beam_size=3
         )
 
         text_parts = []
-
         for i, segment in enumerate(segments):
-            if i >= 30:  # ~1 minute of speech cap
+            if i >= 30:
                 break
             text_parts.append(segment.text)
 

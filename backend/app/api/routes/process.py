@@ -1,9 +1,12 @@
 from fastapi import APIRouter, HTTPException
 from pathlib import Path
 from pydantic import BaseModel
+from app.utils.status import set_status, get_status
+
 import json
 import re
-
+from fastapi import BackgroundTasks
+from app.utils.status import set_status
 from app.services.content.generator import ContentGenerator
 from app.services.video.extractor import extract_audio
 from app.services.speech.transcriber import Transcriber
@@ -45,6 +48,50 @@ def safe_parse_content(raw):
             pass
 
     return {"text": cleaned}
+
+
+
+
+
+def run_pipeline(video_id: str):
+    try:
+        # 1️⃣ find video
+        video_matches = list(UPLOAD_DIR.glob(f"{video_id}.*"))
+        if not video_matches:
+            raise RuntimeError("Video not found")
+
+        video_path = video_matches[0]
+
+        # 2️⃣ extract audio
+        audio_path = extract_audio(video_path, AUDIO_DIR)
+
+        # 3️⃣ transcribe (Whisper medium)
+        transcriber = Transcriber()
+        text = transcriber.transcribe(audio_path)
+
+        transcript_path = TRANSCRIPT_DIR / f"{video_id}.txt"
+        transcript_path.write_text(text, encoding="utf-8")
+
+        # 4️⃣ generate content
+        if not OPENAI_API_KEY:
+            raise RuntimeError("OpenAI API key missing")
+
+        generator = ContentGenerator()
+        raw = generator.generate(transcript=text, category="general")
+        content = safe_parse_content(raw)
+
+        # 5️⃣ save result
+        result_path = (TRANSCRIPT_DIR.parent / "results") / f"{video_id}.json"
+        result_path.parent.mkdir(exist_ok=True)
+        result_path.write_text(json.dumps(content))
+
+        # 6️⃣ cleanup
+        cleanup_video_files(video_id)
+
+        set_status(video_id, "completed")
+
+    except Exception as e:
+        set_status(video_id, "failed", str(e))
 
 
 # =========================
@@ -169,6 +216,32 @@ def generate_content(video_id: str, body: GenerateContentRequest):
     finally:
         if lock_file.exists():
             lock_file.unlink()
+
+
+
+@router.post("/process/start/{video_id}")
+def start_processing(video_id: str, background_tasks: BackgroundTasks):
+    set_status(video_id, "processing")
+
+    background_tasks.add_task(run_pipeline, video_id)
+
+    return {"status": "started"}
+
+
+
+@router.get("/process/status/{video_id}")
+def process_status(video_id: str):
+    return get_status(video_id)
+
+
+@router.get("/process/result/{video_id}")
+def get_result(video_id: str):
+    result_path = (TRANSCRIPT_DIR.parent / "results") / f"{video_id}.json"
+
+    if not result_path.exists():
+        raise HTTPException(404, "Result not ready")
+
+    return json.loads(result_path.read_text())
 
 
 @router.post("/full/{video_id}")

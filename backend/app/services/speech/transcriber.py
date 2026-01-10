@@ -1,24 +1,14 @@
-from faster_whisper import WhisperModel
+from openai import OpenAI
+from app.core.config import OPENAI_API_KEY
 
-# LOAD ONCE
-_MODEL = WhisperModel(
-    "medium",
-    device="cpu",
-    compute_type="int8"
-)
+client = OpenAI(api_key=OPENAI_API_KEY)
 
 class Transcriber:
     def transcribe(self, audio_path: str) -> str:
-        segments, info = _MODEL.transcribe(
-            audio_path,
-            vad_filter=True,
-            beam_size=3
-        )
+        with open(audio_path, "rb") as audio_file:
+            response = client.audio.transcriptions.create(
+                model="whisper-1",
+                file=audio_file
+            )
 
-        text_parts = []
-        for i, segment in enumerate(segments):
-            if i >= 30:
-                break
-            text_parts.append(segment.text)
-
-        return " ".join(text_parts)
+        return response.text

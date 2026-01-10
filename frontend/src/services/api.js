@@ -2,7 +2,7 @@ const API_BASE =
   import.meta.env.VITE_API_BASE ||
   (window.location.hostname === "localhost"
     ? "http://localhost:8000"
-    : "http://3.93.39.191:8000");
+    : "http://100.48.225.236:8000");
 
 // ======================
 // Upload

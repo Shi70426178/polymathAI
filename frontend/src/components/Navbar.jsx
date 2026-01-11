@@ -4,7 +4,7 @@ export default function Navbar() {
       <div className="logo">PolymathAI</div>
       <div className="nav-links">
         <span>How it works</span>
-        <span className="disabled">Pricing</span>
+        {/* <span className="disabled">Pricing</span> */}
       </div>
     </nav>
   );

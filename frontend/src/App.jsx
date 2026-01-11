@@ -2,6 +2,9 @@ import { useState, useRef } from "react";
 import Navbar from "./components/Navbar";
 import UploadCard from "./components/UploadCard";
 import ResultCard from "./components/ResultCard";
+import { useEffect } from "react";
+import { pageview } from "./utils/analytics";
+
 import {
   uploadVideo,
   startProcess,
@@ -13,6 +16,11 @@ function App() {
   const [content, setContent] = useState(null);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState("");
+
+
+  useEffect(() => {
+  pageview(window.location.pathname);
+}, []);
 
   // prevents multiple polling intervals
   const pollRef = useRef(null);

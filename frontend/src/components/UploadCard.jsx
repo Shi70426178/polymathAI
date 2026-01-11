@@ -1,12 +1,14 @@
 import { useState } from "react";
+import { event } from "../utils/analytics";
 
 const CATEGORIES = [
-  "vlog",
+  "...",
+  "education",
   "lifestyle",
   "comedy",
   "motivation",
   "gaming",
-  "education",
+  "vlog",
   "podcast",
   "tech",
 ];
@@ -14,6 +16,18 @@ const CATEGORIES = [
 export default function UploadCard({ onGenerate, loading }) {
   const [file, setFile] = useState(null);
   const [category, setCategory] = useState("vlog");
+
+  function handleGenerateClick() {
+    // 🔹 Google Analytics event
+    event({
+      action: "generate_click",
+      category: "video",
+      label: category,
+    });
+
+    // 🔹 Actual logic
+    onGenerate(file, category);
+  }
 
   return (
     <div className="card upload-card">
@@ -53,14 +67,12 @@ export default function UploadCard({ onGenerate, loading }) {
       </div>
 
       <button
-  className="primary-btn"
-  disabled={loading || !file}
-  onClick={() => onGenerate(file, category)}
->
-  {loading ? "Processing…" : "🚀 Generate with AI"}
-</button>
-
-
+        className="primary-btn"
+        disabled={loading || !file}
+        onClick={handleGenerateClick}
+      >
+        {loading ? "Processing…" : "🚀 Generate with AI"}
+      </button>
 
       <p className="tiny muted">Free for short videos</p>
     </div>

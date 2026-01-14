@@ -23,9 +23,7 @@ from app.core.config import (
 router = APIRouter(prefix="/process", tags=["Processing"])
 
 
-# =========================
-# Utils
-# =========================
+
 
 def safe_parse_content(raw):
     """
@@ -37,10 +35,10 @@ def safe_parse_content(raw):
     if not isinstance(raw, str):
         return {"text": str(raw)}
 
-    # remove ```json ``` wrappers
+ 
     cleaned = re.sub(r"```json|```", "", raw).strip()
 
-    # try to extract JSON block
+    
     match = re.search(r"\{[\s\S]*\}", cleaned)
     if match:
         try:

@@ -17,11 +17,18 @@ export async function uploadVideo(file) {
   });
 
   if (!res.ok) {
-    throw new Error("Upload failed");
+    const data = await res.json();
+
+    // 🔥 Forward backend error properly
+    throw {
+      status: res.status,
+      ...(data.detail || {}),
+    };
   }
 
   return res.json();
 }
+
 
 // ======================
 // Start background processing
@@ -57,6 +64,39 @@ export async function getResult(videoId) {
 
   if (!res.ok) {
     throw new Error("Result not ready");
+  }
+
+  return res.json();
+}
+
+/// ======================
+// Auth
+// ======================
+export async function signup(username, email, password) {
+  const res = await fetch(`${API_BASE}/auth/signup`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, email, password }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.detail || "Signup failed");
+  }
+
+  return res.json();
+}
+
+
+export async function login(email, password) {
+  const res = await fetch(`${API_BASE}/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+
+  if (!res.ok) {
+    throw new Error("Invalid credentials");
   }
 
   return res.json();
